@@ -41,7 +41,7 @@ def del_one(advertisement_id: int):
     return {f"advertisement {advertisement_id}" : "Delete"}
 
 @app.get("/advertisement/{advertisement_id}/")
-def get_advertisement(advertisement_id: int, new_adv: MyAdvertisement):
+def get_advertisement(advertisement_id: int):
     adv = sess.query(Advertisement).filter(Advertisement.id == advertisement_id).first()
     if adv:
         return adv
@@ -50,19 +50,22 @@ def get_advertisement(advertisement_id: int, new_adv: MyAdvertisement):
 
 @app.get("/advertisement/")
 def get_query_string(id: Optional[int] = None,
-                     params: UpdateAdvertisement = Depends()):
+                     title: Optional[str] = None,
+                     description: Optional[str] = None,
+                     price: Optional[float] = None,
+                     author: Optional[str] = None):
     query = sess.query(Advertisement)
 
-    if id is not None:
+    if id:
         query = query.filter(Advertisement.id == id)
-    if params.title is not None:
-        query = query.filter(Advertisement.title.ilike(f"%{params.title}%"))
-    if params.description is not None:
-        query = query.filter(Advertisement.description.ilike(f"%{params.description}%"))
-    if params.price is not None:
-        query = query.filter(Advertisement.price == params.price)
-    if params.author is not None:
-        query = query.filter(Advertisement.author.ilike(f"%{params.author}%"))
+    if title:
+        query = query.filter(Advertisement.title.ilike(f"%{title}%"))
+    if description:
+        query = query.filter(Advertisement.description.ilike(f"%{description}%"))
+    if price:
+        query = query.filter(Advertisement.price == price)
+    if author:
+        query = query.filter(Advertisement.author.ilike(f"%{author}%"))
 
     result = query.all()
     return result
