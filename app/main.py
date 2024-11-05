@@ -9,6 +9,7 @@ sess = Session()
 @contextmanager
 def lifespan(app: FastAPI):
     create_tables(engine)
+    print("Поехали") 
     yield
     print("Выключение")
 
@@ -18,7 +19,7 @@ app = FastAPI(lifespan=lifespan)
 
 @app.post("/advertisement") 
 def post_advertisement(new_adv: MyAdvertisement):
-    save_adv = Advertisement(**new_adv)
+    save_adv = Advertisement(**new_adv.dict())
     connect_session(save_adv,True)
     return new_adv
 
