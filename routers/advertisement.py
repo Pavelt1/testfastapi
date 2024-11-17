@@ -15,7 +15,7 @@ router = APIRouter(
  
 @router.post("/") 
 async def post_advertisement(new_adv: postAdvertisement, session: SessAsync,token: Optional[str] = Header(None)):
-    response = check_right(session,token)
+    response = await check_right(session,token)
     if isinstance(response,dict):
         new_adv = add_db(Advertisement,format_json(new_adv,response),session)
     else:
@@ -27,7 +27,7 @@ async def patch_advertisement(advertisement_id: int ,
                               new_adv: patchAdvertisement, 
                               session: SessAsync,
                               token: Optional[str] = Header(None)):
-    response = check_right(session,token)
+    response = await check_right(session,token)
     if isinstance(response,dict):
         result = in_db_id(Advertisement,advertisement_id,session)
         if result:
@@ -43,7 +43,7 @@ async def patch_advertisement(advertisement_id: int ,
     
 @router.delete("/{advertisement_id}/")
 async def del_one(advertisement_id: int, session: SessAsync,token: Optional[str] = Header(None)):
-    response = check_right(session,token)
+    response = await check_right(session,token)
     if isinstance(response,dict):
         result = in_db_id(Advertisement,advertisement_id,session)
         if result:
