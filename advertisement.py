@@ -1,12 +1,12 @@
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Header
 from sqlalchemy import select
-from ..schema import postAdvertisement, patchAdvertisement
-from ..database.db import Advertisement, User
-from ..dependeses import SessAsync
+from schema import postAdvertisement, patchAdvertisement
+from db import Advertisement, User
+from dependeses import SessAsync
 from pydantic import BaseModel
-from ..database.crud import in_db_id, add_db,for_login
-from ..auth import check_right, hash_password, check_password,ROL,format_json
+from crud import in_db_id, add_db,for_login
+from auth import check_right, hash_password, check_password,ROL,format_json
 
 router = APIRouter(
     prefix="/advertisement",
@@ -17,7 +17,7 @@ router = APIRouter(
 async def post_advertisement(new_adv: postAdvertisement, session: SessAsync,token: Optional[str] = Header(None)):
     response = await check_right(session,token)
     if isinstance(response,dict):
-        new_adv = add_db(Advertisement,format_json(new_adv,response),session)
+        await add_db(Advertisement,format_json(new_adv,response),session)
     else:
         raise HTTPException(status_code=403, detail={"token" : response})
     
@@ -29,7 +29,7 @@ async def patch_advertisement(advertisement_id: int ,
                               token: Optional[str] = Header(None)):
     response = await check_right(session,token)
     if isinstance(response,dict):
-        result = in_db_id(Advertisement,advertisement_id,session)
+        result = await in_db_id(Advertisement,advertisement_id,session)
         if result:
             for key,value in (format_json(new_adv,response)).items():
                 setattr(result, key, value)
@@ -45,7 +45,7 @@ async def patch_advertisement(advertisement_id: int ,
 async def del_one(advertisement_id: int, session: SessAsync,token: Optional[str] = Header(None)):
     response = await check_right(session,token)
     if isinstance(response,dict):
-        result = in_db_id(Advertisement,advertisement_id,session)
+        result = await in_db_id(Advertisement,advertisement_id,session)
         if result:
             result.delete()
             await session.commit()   
@@ -58,7 +58,7 @@ async def del_one(advertisement_id: int, session: SessAsync,token: Optional[str]
 
 @router.get("/{advertisement_id}/")
 async def get_advertisement(advertisement_id: int , session: SessAsync):
-    result = in_db_id(Advertisement,advertisement_id,session)
+    result = await in_db_id(Advertisement,advertisement_id,session)
     if result:
         return result
     else:

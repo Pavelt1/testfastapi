@@ -1,11 +1,11 @@
 from typing import Literal, Optional
 from fastapi import APIRouter, HTTPException, Header
-from ..schema import postUser
-from ..dependeses import SessAsync
-from ..database.db import Role, User, Token
-from ..auth import hash_password, check_password,ROL
+from schema import postUser
+from dependeses import SessAsync
+from db import Role, User, Token
+from auth import hash_password, check_password,ROL
 from sqlalchemy import select
-from ..database.crud import in_db_id, add_db,for_login
+from crud import in_db_id, add_db,for_login
 
 
 router = APIRouter(
@@ -30,7 +30,7 @@ async def post_user(jsonForm: postUser, session: SessAsync, header_role: Optiona
 
 @router.post("/login")
 async def create_token(jsonForm: postUser, session: SessAsync):
-    user = for_login(User,jsonForm.login,session)
+    user = await for_login(User,jsonForm.login,session)
     if user:
         if check_password(user.password,(hash_password(jsonForm.password))):
             save = Token(user=user)
@@ -44,7 +44,7 @@ async def create_token(jsonForm: postUser, session: SessAsync):
 
 @router.get("/{user_id}/")
 async def get_user(user_id: int, session: SessAsync):
-    result = in_db_id(User,user_id,session)
+    result = await in_db_id(User,user_id,session)
     if result:
         return {"user":True,
                 "id": user_id,
@@ -55,7 +55,7 @@ async def get_user(user_id: int, session: SessAsync):
 
 @router.patch("/{user_id}/")
 async def patch_user(user_id: int,jsonForm: postUser, session: SessAsync):
-    user = in_db_id(User,user_id,session)
+    user = await in_db_id(User,user_id,session)
     if user:
         if check_password(user.password,(hash_password(jsonForm.password))):
             new_data={"login":jsonForm.new_login,"password":hash_password(jsonForm.new_password)}
@@ -72,7 +72,7 @@ async def patch_user(user_id: int,jsonForm: postUser, session: SessAsync):
 
 @router.delete("/{user_id}/")
 async def del_user(user_id: int,jsonForm: postUser, session: SessAsync):
-    user = in_db_id(User,user_id,session)
+    user = await in_db_id(User,user_id,session)
     if user:
         if check_password(user.password,(hash_password(jsonForm.password))):
             user.delete()

@@ -1,6 +1,6 @@
 from sqlalchemy import select
-from ..dependeses import SessAsync
-from database.db import MODEL
+from dependeses import SessAsync
+from db import MODEL
 from pydantic import BaseModel
 import uuid
 

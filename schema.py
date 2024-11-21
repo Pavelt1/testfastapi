@@ -8,6 +8,7 @@ class postAdvertisement(BaseModel):
     price : float
     author : str
     date_of_creation: Optional[datetime] = None 
+
     
 
 class patchAdvertisement(BaseModel):
