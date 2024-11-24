@@ -7,7 +7,6 @@ class postAdvertisement(BaseModel):
     description : str 
     price : float
     author : str
-    date_of_creation: Optional[datetime] = None 
 
     
 
@@ -24,6 +23,6 @@ class postUser(BaseModel):
 
 class pachUser(postUser):
     new_login  : Optional[str] = None
-    wew_password : Optional[str] = None
+    new_password : Optional[str] = None
 
     

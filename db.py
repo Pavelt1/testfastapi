@@ -19,7 +19,7 @@ POSTGRES_DB = os.getenv('POSTGRES_DB',"postgres")
 POSTGRES_HOST = os.getenv("POSTGRES_HOST","5432")
 
 DSN = f"postgresql+asyncpg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@localhost:{POSTGRES_HOST}/{POSTGRES_DB}"
-engine = create_async_engine(DSN,echo=True) 
+engine = create_async_engine(DSN) 
 #Указание echo=True при инициализации движка позволит нам увидеть сгенерированные SQL-запросы в консоли.
 
 Base = declarative_base(metadata=MetaData())
@@ -32,19 +32,19 @@ class User(Base):
     
     id: Mapped[int] = mapped_column(Integer,primary_key=True)
     login: Mapped[str] = mapped_column(String,unique=True,nullable=False)
-    passwird: Mapped[str] = mapped_column(String,nullable=False)
+    password: Mapped[str] = mapped_column(String,nullable=False)
 
-    token: Mapped[List["Token"]] = relationship("Token", lazy="joined",back_populates="user")
+    token: Mapped[List["Token"]] = relationship("Token", lazy="joined",back_populates="user",cascade="all, delete-orphan")
     #lazy = "joined"  при запросе юзера будет автоматически приклеивать токен
-    advertisement: Mapped[list["Advertisement"]] = relationship("Advertisement", lazy="joined",back_populates="user")
-    role: Mapped[List["Role"]] = relationship("Role", lazy="joined",back_populates="user",uselist=False)
+    advertisement: Mapped[list["Advertisement"]] = relationship("Advertisement", lazy="joined",back_populates="user",passive_deletes=True)
+    role: Mapped[List["Role"]] = relationship("Role", lazy="joined",back_populates="user",uselist=False,cascade="all, delete-orphan")
     # uselist=False Показывает что это все один к одному
 
     def dict(self):
         return {
             "id":self.id,
             "login":self.login,
-            "role":[ad.role for ad in self.role],
+            "role":self.role.role if self.role else None,
             "token":self.token,
             "advertisement":[ad.title for ad in self.advertisement],
             }
@@ -59,6 +59,12 @@ class Role(Base):
     
     user: Mapped[User] = relationship("User", lazy="joined",back_populates="role") 
 
+    def dict(self):
+        return {
+            "id":self.id,
+            "role":self.role
+            }
+    
 class Token(Base):
     __tablename__ = "token"
 
@@ -67,14 +73,13 @@ class Token(Base):
     create_datetime: Mapped[datetime.datetime] =  mapped_column(DateTime,server_default=func.now())
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"),nullable=False)
 
-    user: Mapped[User] = relationship("User", lazy="joined",back_populates="token")
+    user: Mapped[List["User"]] = relationship("User", lazy="joined",back_populates="token")
 
     def dict(self):
         return {
-            "id":self.id,
             "token":self.token,
             "create_datetime":self.create_datetime,
-            "user":self.user
+            "user":{"id":self.user.id,"login":self.user.login}
             }
 
 
@@ -110,7 +115,7 @@ async def async_session():
 
 async def init_models():
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        # await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
 

@@ -1,3 +1,4 @@
+import uuid
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Header
 from sqlalchemy import select
@@ -14,27 +15,32 @@ router = APIRouter(
 )
  
 @router.post("/") 
-async def post_advertisement(new_adv: postAdvertisement, session: SessAsync,token: Optional[str] = Header(None)):
-    response = await check_right(session,token)
-    if isinstance(response,dict):
-        await add_db(Advertisement,format_json(new_adv,response),session)
+async def post_advertisement(new_adv: postAdvertisement, 
+                             session: SessAsync, 
+                             token: Optional[str] = Header()):
+    data = new_adv.dict()
+    response = await check_right(session, token)
+    if isinstance(response, dict):
+        new = await add_db(Advertisement, format_json(data,response["user"]), session)
+        return new
     else:
-        raise HTTPException(status_code=403, detail={"token" : response})
+        raise HTTPException(status_code=403, detail={"token": response})
     
 
 @router.patch("/{advertisement_id}/")
 async def patch_advertisement(advertisement_id: int ,
                               new_adv: patchAdvertisement, 
                               session: SessAsync,
-                              token: Optional[str] = Header(None)):
+                              token: Optional[str] = Header()):
+    data = new_adv.dict()
     response = await check_right(session,token)
     if isinstance(response,dict):
         result = await in_db_id(Advertisement,advertisement_id,session)
         if result:
-            for key,value in (format_json(new_adv,response)).items():
+            for key,value in (format_json(data,response["user"])).items():
                 setattr(result, key, value)
             await session.commit()
-            return result
+            return {"data": True}
         else:
             raise HTTPException(status_code=404, detail=f"Advertisement {advertisement_id} not found in the database.")
     else:
@@ -47,8 +53,8 @@ async def del_one(advertisement_id: int, session: SessAsync,token: Optional[str]
     if isinstance(response,dict):
         result = await in_db_id(Advertisement,advertisement_id,session)
         if result:
-            result.delete()
-            await session.commit()   
+            await session.delete(result)
+            await session.commit()  
             return {f"advertisement {advertisement_id}" : "Delete"}
         
         else:
@@ -59,31 +65,6 @@ async def del_one(advertisement_id: int, session: SessAsync,token: Optional[str]
 @router.get("/{advertisement_id}/")
 async def get_advertisement(advertisement_id: int , session: SessAsync):
     result = await in_db_id(Advertisement,advertisement_id,session)
-    if result:
-        return result
-    else:
+    if result is None:
         raise HTTPException(status_code=404, detail=f"Advertisement {advertisement_id} not found in the database.")
-
-@router.get("/")
-async def get_query_string(session: SessAsync,
-                           id: Optional[int] = None,
-                           title: Optional[str] = None,
-                           description: Optional[str] = None,
-                           price: Optional[float] = None,
-                           author: Optional[str] = None):
-    query = select(Advertisement)
-
-    if id is not None:
-        query = query.where(Advertisement.id == id)
-    if title is not None:
-        query = query.where(Advertisement.title.ilike(f"%{title}%"))
-    if description is not None:
-        query = query.where(Advertisement.description.ilike(f"%{description}%"))
-    if price is not None:
-        query = query.where(Advertisement.price == price)
-    if author is not None:
-        query = query.where(Advertisement.author.ilike(f"%{author}%"))
-
-    result = await session.execute(query)
-    advertisements = result.scalars().all()
-    return advertisements
+    return result.dict()

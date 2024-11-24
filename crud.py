@@ -3,12 +3,14 @@ from dependeses import SessAsync
 from db import MODEL
 from pydantic import BaseModel
 import uuid
+from schema import postUser
 
 
 async def add_db(ORMmodel: MODEL,data: dict,session: SessAsync):
-    save_adv = ORMmodel(**data.dict())
+    save_adv = ORMmodel(**data)
     session.add(save_adv)
     await session.commit()
+    return save_adv
 
 async def in_db_id(ORMmodel: MODEL,data: int,session: SessAsync):
     adv = select(ORMmodel).where(ORMmodel.id == data)
